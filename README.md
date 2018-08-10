@@ -1,13 +1,13 @@
-## single_tmaze
+# single_tmaze
 
 This is a partial implementation of evolving hebbian neural network to solve single T-maze task described in the following paper:
 
-[1] Soltoggio, A. [Evolutionary Advantages of Neuromodulated Plasticity in Dynamic, Reward-based Scenarios](http://andrea.soltoggio.net/data/papers/SoltoggioALife2008.pdf)
+[1] Soltoggio, A. (2008) [Evolutionary Advantages of Neuromodulated Plasticity in Dynamic, Reward-based Scenarios](http://andrea.soltoggio.net/data/papers/SoltoggioALife2008.pdf)
 
 The topology search and modulatory neurons are omitted (they were unnecessary for single T-maze task); some other alterations are made in this implementation.
 _Maybe I will implement modulatory neurons and double T-maze if I feel like it_.
 
-#### To run
+### To run
 ```bash
 $ python3 ./experiment.py
 ```
