@@ -74,8 +74,8 @@ if __name__ == '__main__':
     assert_genotype(min([x.rule[0] for x in gs]) >= -3.0)
     assert_genotype(max([x.rule[0] for x in gs]) <=  3.0)
 
-    assert_genotype(min([np.min(x.rule[1:5]) for x in gs]) >= -1.0)
-    assert_genotype(max([np.max(x.rule[1:5]) for x in gs]) <=  1.0)
+    assert_genotype(min([np.min(x.rule[1:5]) for x in gs]) >= -1.5)
+    assert_genotype(max([np.max(x.rule[1:5]) for x in gs]) <=  1.5)
 
     # tests for cross_weight & cross_rule & cross_genotype
     g1, g2 = Genotype(5, 5), Genotype(5, 5)
