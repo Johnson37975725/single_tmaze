@@ -1,45 +1,52 @@
 import numpy as np
 import copy as cp
 from genotype import *
+from joblib import Parallel, delayed
 
 class EvolutionarySearch:
-    def __init__(self, env_cls, phe_cls, n_neuron, n_pop, n_group = 5):
+    def __init__(self, env_cls, phe_cls, n_neuron, n_pop, n_group = 5, n_jobs = 2):
         self.env      = env_cls()
         self.phe_cls  = phe_cls
         self.n_input  = self.env.n_input
         self.n_neuron = n_neuron
         self.n_pop    = n_pop
         self.n_group  = n_group
+        self.n_jobs   = n_jobs
         self.pop      = np.array([Genotype(self.n_input, n_neuron) for i in range(n_pop)])
         self.n_eval   = 2
 
     def run(self, n_generation, print_stats = True):
         for i in range(n_generation):
-            self.evaluation(self.pop, self.n_eval)
+            self.pop = self.evaluation(self.pop, self.n_jobs, self.n_eval)
             if print_stats: print(', '.join([str(x) for x in [i] + self.stats(self.pop)]))
             if (i+1) == n_generation: break
             self.pop = self.mutation(self.crossover(self.selection(self.pop, self.n_pop, self.n_group)))
         return self.pop
 
     def stats(self, pop): # return list object not numpy object
-        return [round(x, 5) for x in self.fit_stats(pop) + self.best_rule(pop) + self.plastic_utility(pop)]
+        return [round(x, 4) for x in self.fit_stats(pop) + self.best_rule(pop) + self.plastic_utility(pop)]
 
     def fit_stats(self, pop): # return a list object not numpy object
         fits = [g.fitness for g in pop]
         return [f(fits) for f in [np.mean, np.median, np.std, max, min]]
 
     def best_rule(self, pop): # return a list object not numpy object
-        best = sorted(pop, key = lambda g:g.fitness)[-1]
-        return self.phe_cls(best).rule.tolist()
+        best = self.phe_cls(sorted(pop, key = lambda g:g.fitness)[-1])
+        return best.rule.tolist()
 
     def plastic_utility(self, pop): # return a list object not numpy object
         best = sorted(pop, key = lambda g:g.fitness)[-1]
-        pos  = np.mean([self.env.evaluate(self.phe_cls(best)) for i in range(5)])
-        neg  = np.mean([self.env.evaluate(self.phe_cls(best, False)) for i in range(5)])
+        pos  = np.mean([self.env.evaluate(self.phe_cls(best)) for i in range(10)])
+        neg  = np.mean([self.env.evaluate(self.phe_cls(best, plastic = False)) for i in range(10)])
         return [pos, neg]
 
-    def evaluation(self, pop, n_eval): # I feel that this is an awkward function
-        for g in pop: g.fitness = np.mean([self.env.evaluate(self.phe_cls(g)) for i in range(n_eval)])
+    def eval_proc(self, genotype_, n_eval):
+        g = cp.deepcopy(genotype_)
+        g.fitness = np.mean([self.env.evaluate(self.phe_cls(g)) for i in range(n_eval)])
+        return g
+
+    def evaluation(self, pop, n_jobs, n_eval):
+        return np.array(Parallel(n_jobs = n_jobs)([delayed(self.eval_proc)(g, n_eval) for g in pop]))
 
     def selection(self, pop, n_pop, n_group):
         lpop   = pop.tolist()
@@ -90,7 +97,8 @@ if __name__ == '__main__':
     n_neu =  4
     n_pop = 25
     n_grp =  5
-    es = EvolutionarySearch(EnvMock, PheMock, n_neu, n_pop, n_grp)
+    n_jbs =  1
+    es = EvolutionarySearch(EnvMock, PheMock, n_neu, n_pop, n_grp, n_jbs)
 
     # tests for fit_stats
     for i in range(n_pop): es.pop[i].fitness = i
@@ -112,11 +120,7 @@ if __name__ == '__main__':
     assert_evolutionary_search(isinstance(result, list))
     assert_evolutionary_search(np.allclose(result, [max(fits) * 2, max(fits) * 3]))
 
-    # a test for evaluation
-    fits = np.random.rand(n_pop)
-    for i in range(n_pop): es.pop[i].fitness = fits[i]
-    es.evaluation(es.pop, 3)
-    assert_evolutionary_search(np.allclose([g.fitness for g in es.pop], fits * 2))
+    # ToDo: a test for evaluation
 
     # tests for selection
     fits = np.random.rand(n_pop)
